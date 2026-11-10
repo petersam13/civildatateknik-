@@ -1,0 +1,1020 @@
+================================================================
+  MITTUNIVERSITETET
+  Avdelningen för informationssystem och -teknologi
+
+  Projektuppgift
+  Kurs: DT058G/DT100G, Webbprogrammering
+
+  SmartBudget – En webbaserad applikation
+  för privatekonomisk planering
+
+  Författare:      Peter Samy
+  Utbildningsprogram: Civilingenjör datateknik, 300 hp
+  Huvudområde:     Datateknik
+  Termin, år:      VT, 2026
+================================================================
+
+
+
+
+================================================================
+SAMMANFATTNING
+================================================================
+
+Privatekonomi är ett ämne som berör alla men som många
+upplever som svårt att hålla koll på. Målet med detta projekt
+har varit att utveckla en fullständig, dynamisk webbapplikation
+kallad SmartBudget, där användare kan registrera inkomster,
+fasta kostnader och rörliga utgifter för att få en tydlig
+bild av sin ekonomiska situation.
+
+Applikationen har utvecklats med PHP och MySQL som kärn­
+teknologier, med PDO och prepared statements för säker
+databashantering. Autentiseringssystemet använder PHP-sessioner
+och bcrypt-lösenordshashning via password_hash(). JavaScript
+används för klientsidig interaktivitet, bland annat AJAX-baserad
+borttagning av poster utan sidomladdning, och CSS3-animationer
+skapar ett modernt och professionellt gränssnitt.
+
+Projektet integrerar två externa API:er: World Bank Open Data
+API hämtas direkt i webbläsaren för att visa Sveriges
+genomsnittliga inkomst, medan Riksbankens Open API anropas
+server-side via PHP/cURL för att kringgå CORS-begränsningar.
+Statistiksidan visualiserar all data med interaktiva diagram
+via Chart.js-biblioteket.
+
+En administratörspanel möjliggör användarhantering med
+IP-spårning, suspend-funktion och radering av konton.
+
+Det största tekniska problemet under projektet var CORS-felet
+med Riksbankens API, som löstes genom att flytta anropet
+till PHP-servern. Projektet uppfyller kursens samtliga krav
+och demonstrerar kunskaper inom databaser, serverlogik,
+API-integration, säkerhet och modern webbutveckling.
+
+Nyckelord: PHP, MySQL, PDO, API, AJAX, CSS-animationer,
+           privatekonomi, webbapplikation, autentisering
+
+
+
+
+================================================================
+FÖRORD
+================================================================
+
+Detta projekt har genomförts som en del av kursen
+DT058G/DT100G Webbprogrammering vid Mittuniversitetet
+under vårterminen 2026.
+
+Tack till kursläraren för tydliga instruktioner och
+återkoppling under projektets gång.
+
+
+
+
+================================================================
+INNEHÅLLSFÖRTECKNING
+================================================================
+
+Sammanfattning
+Förord
+Terminologi
+
+1  Introduktion
+   1.1  Bakgrund och problemmotivering
+   1.2  Övergripande syfte
+   1.3  Avgränsningar
+   1.4  Konkreta och verifierbara mål
+   1.5  Översikt
+   1.6  Författarens bidrag
+
+2  Teori och bakgrundsmaterial
+   2.1  Dynamiska webbapplikationer med PHP
+   2.2  Databashantering med MySQL och PDO
+   2.3  API:er och CORS
+   2.4  Säkerhet i webbapplikationer
+
+3  Metod
+
+4  Konstruktion
+   4.1  Planering och storyboard
+   4.2  Flödesschema
+   4.3  Databasdesign
+   4.4  Sidornas konstruktion
+   4.5  Interaktion med JavaScript och AJAX
+   4.6  Design och CSS-animationer
+   4.7  Externa API-integrationer
+   4.8  Administratörspanel
+   4.9  Utvecklingsmiljö och licenser
+
+5  Resultat och testning
+   5.1  Funktionella tester
+   5.2  Säkerhetstester
+   5.3  Kompatibilitetstester
+
+6  Slutsatser och diskussion
+   6.1  Analys av resultaten
+   6.2  Problem och lösningar
+   6.3  Vad fungerar bra och dåligt
+   6.4  Vidareutveckling
+
+Källförteckning
+
+Bilaga A: Filförteckning och filstruktur
+
+
+
+
+================================================================
+TERMINOLOGI
+================================================================
+
+Akronymer och förkortningar:
+
+API    Application Programming Interface. Ett gränssnitt
+       för kommunikation mellan olika programvaror eller
+       system.
+
+AJAX   Asynchronous JavaScript And XML. Teknik för att
+       kommunicera med servern i bakgrunden utan att ladda
+       om webbsidan.
+
+CORS   Cross-Origin Resource Sharing. En säkerhetspolicy
+       i webbläsare som begränsar vilka domäner som kan
+       hämta resurser från en annan domän.
+
+CRUD   Create, Read, Update, Delete. De fyra grundläggande
+       operationerna för databashantering.
+
+CSS    Cascading Style Sheets. Stilmall­språk för att
+       beskriva presentationen av HTML-dokument.
+
+cURL   Client URL. Bibliotek för att göra nätverks­förfrågningar
+       från PHP-servern.
+
+JSON   JavaScript Object Notation. Textbaserat dataformat
+       vanligt vid API-kommunikation.
+
+PDO    PHP Data Objects. PHP:s gränssnitt för databas­åtkomst.
+
+PHP    Hypertext Preprocessor. Serversidig skriptmotor
+       för webbutveckling.
+
+SQL    Structured Query Language. Frågespråk för relations­
+       databaser.
+
+XSS    Cross-Site Scripting. Säkerhetssårbarhet där skadlig
+       kod injiceras i en webbsida.
+
+
+
+
+================================================================
+1  INTRODUKTION
+================================================================
+
+1.1  Bakgrund och problemmotivering
+------------------------------------
+Personlig ekonomi är ett ämne av fundamental betydelse för
+alla individer, men undersökningar visar att många saknar
+konkreta verktyg för att hålla koll på sin budget [1]. En
+studie från Finansinspektionen (2023) visar att var tredje
+svenska hushåll upplever att de har svårt att få ekonomin
+att gå ihop [2]. Digitala hjälpmedel för privatekonomisk
+planering finns på marknaden, men befintliga lösningar är
+ofta komplexa, kräver betalprenumerationer eller är inte
+anpassade för svenska ekonomiska förhållanden.
+
+Webbapplikationer erbjuder en naturlig plattform för
+privatekonomiska verktyg, eftersom de är plattformsoberoende
+och kräver ingen installation. PHP och MySQL är sedan länge
+etablerade teknologier för serversidiga webbapplikationer [3]
+och utgör en lämplig bas för detta projekt.
+
+SmartBudget är en webbbaserad applikation skapad för att
+ge användare enkel och överskådlig kontroll över sin
+månadsbudget. Applikationen är byggd med öppen källkod­
+mjukvara och körs lokalt via XAMPP-miljön.
+
+1.2  Övergripande syfte
+------------------------
+Projektets övergripande syfte är att omsätta kursens moment
+i ett sammanhängande, fullständigt projekt. Syftet är att
+skapa en dynamisk webbapplikation som demonstrerar kunskaper
+inom databas­hantering, sessionsbaserad autentisering,
+API-integration och klientsidig interaktivitet.
+
+Projektet syftar också till att undersöka hur externa API:er
+från svenska myndigheter (Riksbanken) kan integreras i en
+webbapplikation, och hur CORS-begränsningar kan hanteras.
+
+1.3  Avgränsningar
+-------------------
+Undersökningen och implementationen är avgränsad till
+följande:
+
+  - Applikationen körs lokalt via XAMPP och är inte
+    driftsatt på en publik server.
+  - Inga riktiga pengatransaktioner eller bank­kopplingar
+    hanteras — all data är användarskapad.
+  - Mobilanpassning är implementerad men inte djuptestad
+    på fysiska mobila enheter.
+  - Applikationen stöder enbart det svenska språket.
+  - Projektet genomförs som enskilt arbete.
+
+1.4  Konkreta och verifierbara mål
+------------------------------------
+Undersökningen har som mål att besvara följande frågor:
+
+  M1: Kan en komplett autentiseringsmodul (registrering,
+      inloggning, sessionshantering) implementeras säkert
+      med PHP och MySQL?
+
+  M2: Kan AJAX och JavaScript användas för att förbättra
+      användarupplevelsen vid borttagning av poster,
+      så att sidomladdning undviks?
+
+  M3: Kan data från externa API:er (World Bank, Riksbanken)
+      integreras och visualiseras med Chart.js?
+
+  M4: Kan CORS-begränsningar för Riksbankens API hanteras
+      server-side med PHP/cURL?
+
+  M5: Kan ett funktionellt administratörs­gränssnitt
+      med IP-spårning och suspend-funktion implementeras?
+
+1.5  Översikt
+--------------
+Kapitel 2 beskriver teorin bakom de tekniker som används.
+Kapitel 3 beskriver projektets arbetsmetod och planering.
+Kapitel 4 redovisar konstruktionen av applikationen med
+storyboard, flödesschema, databasdesign och implementerings­
+detaljer. Kapitel 5 presenterar resultaten från testningen.
+Kapitel 6 analyserar resultaten och diskuterar problem,
+slutsatser och möjlig vidareutveckling.
+
+1.6  Författarens bidrag
+-------------------------
+All kod, design och implementation är egenproducerad under
+kursen. Inga delar av projektet har redovisats i tidigare
+kurser. Ingen extern hjälp med kod­skrivning har tagits emot.
+
+
+
+
+================================================================
+2  TEORI OCH BAKGRUNDSMATERIAL
+================================================================
+
+2.1  Dynamiska webbapplikationer med PHP
+-----------------------------------------
+En dynamisk webbapplikation genererar HTML-innehåll
+server-side baserat på data, sessioner och användar­input,
+i motsats till statiska webbsidor [3]. PHP (Hypertext
+Preprocessor) är ett serversidig skriptspråk som körs
+på webbservern och skickar färdig HTML till klienten.
+
+PHP hanterar HTTP-förfrågningar, interagerar med databaser
+och hanterar sessioner via $_SESSION-superglobal [4].
+PHP 8+ introducerade förbättrade typannotationer och
+match-uttryck, vilket förbättrar kodens läsbarhet.
+
+Apache HTTP Server fungerar som webbserver och vidare­
+befordrar förfrågningar till PHP-interpretern. XAMPP
+(Apache + MariaDB + PHP + Perl) är ett lokalt
+driftsättningspaket som förenklar utvecklingen [5].
+
+2.2  Databashantering med MySQL och PDO
+-----------------------------------------
+MySQL är ett relationsdatabas­system som lagrar data i
+tabeller med definierade relationer [6]. SQL (Structured
+Query Language) används för att skapa, läsa, uppdatera
+och radera data (CRUD-operationer).
+
+PDO (PHP Data Objects) är PHP:s abstraktionslager för
+databasåtkomst [4]. Prepared statements (förberedda
+satser) separerar SQL-kod från data, vilket eliminerar
+risken för SQL-injektion [7]. En prepared statement
+kompileras en gång och kan köras upprepade gånger med
+olika parametrar:
+
+  $stmt = $pdo->prepare("SELECT * FROM users WHERE id=?");
+  $stmt->execute([$id]);
+
+Foreign keys med ON DELETE CASCADE säkerställer referentiell
+integritet — när en användare raderas raderas automatiskt
+all kopplad data [6].
+
+2.3  API:er och CORS
+----------------------
+Ett API (Application Programming Interface) är ett
+gränssnitt som möjliggör kommunikation mellan system [8].
+REST-API:er returnerar vanligen data i JSON-format via
+HTTP-protokollet.
+
+CORS (Cross-Origin Resource Sharing) är en webbläsar­
+säkerhetspolicy som blockerar JavaScript-anrop till
+en annan domän än den aktuella sidan [9]. Om en webbsida
+på localhost försöker hämta data från api.riksbank.se,
+blockerar webbläsaren anropet om api.riksbank.se inte
+inkluderar rätt CORS-headers i svaret.
+
+Lösningen är att flytta API-anropet till servern.
+PHP:s cURL-bibliotek kan göra HTTP-förfrågningar utan
+CORS-begränsningar, eftersom begränsningen enbart
+gäller webbläsarbaserad JavaScript [4].
+
+2.4  Säkerhet i webbapplikationer
+-----------------------------------
+OWASP (Open Web Application Security Project) definierar
+de vanligaste webbsårbarheterna i OWASP Top Ten [7].
+För detta projekt är följande relevanta:
+
+SQL-injektion: Angripare kan manipulera SQL-frågor
+genom att injicera kod i formulärinput. Prepared
+statements förhindrar detta genom att parametrar
+aldrig tolkas som SQL-kod [7].
+
+XSS (Cross-Site Scripting): Skadlig JavaScript kan
+injiceras i en webbsida om användardata visas utan
+att specialtecken kodas. PHP:s htmlspecialchars()
+omvandlar < > " & till HTML-entiteter [4].
+
+Lösenordssäkerhet: Lösenord ska aldrig lagras i
+klartext. PHP:s password_hash() med bcrypt­algoritmen
+skapar ett salt och hashar lösenordet. password_verify()
+jämför klartextlösenord mot det lagrade hashvärdet [4].
+
+
+
+
+================================================================
+3  METOD
+================================================================
+
+Projektet genomfördes med en iterativ arbetsmetod uppdelad
+i fyra faser, där varje fas byggde på föregående.
+
+Fas 1 — Infrastruktur och planering (vecka 1–2):
+  Storyboard och flödesschema ritades upp. Databas­schemat
+  designades och tabellerna skapades via phpMyAdmin.
+  Grundfilerna för inloggning, registrering och sessions­
+  hantering implementerades.
+
+Fas 2 — Kärnfunktioner (vecka 3–4):
+  Dashboard med CRUD-operationer implementerades.
+  AJAX-borttagning testades och verifierades manuellt.
+  Varje funktion testades isolerat innan integration.
+
+Fas 3 — API och statistik (vecka 5–6):
+  World Bank API testades i webbläsarens konsol.
+  Riksbankens API testades med cURL i terminalen.
+  CORS-problemet identifierades och löstes (se 6.2).
+  Statistiksidan med Chart.js implementerades och validerades
+  mot riktig API-data.
+
+Fas 4 — Design, admin och optimering (vecka 7–8):
+  Designsystemet implementerades med CSS-variabler och
+  keyframes-animationer. Administratörspanelen byggdes.
+  Koden rensades från dubbletter och oanvända filer.
+
+Testmetod:
+  Funktionella tester genomfördes manuellt för varje
+  funktion (se kapitel 5). Säkerhetstester utfördes
+  med kända attack­vektorer (SQL-injektion, XSS).
+  Kompatibilitet testades i Chrome, Firefox och Edge.
+
+Valda programvaror redovisas i avsnitt 4.9.
+
+
+
+
+================================================================
+4  KONSTRUKTION
+================================================================
+
+4.1  Planering och storyboard
+-------------------------------
+Innan implementation gjordes en planering av applikationens
+sidor och navigeringsflöde. Nedan beskrivs storyboarden
+för applikationens sju sidor.
+
+[Sida 1 – Startsida (index.php)]
+Svart bakgrund med animerat partikelssystem i guldfärg.
+Centrerad rubrik "SmartBudget" i stor serif-font.
+Tunn horisontell guldlinje med diamantpunkt i mitten.
+Kort beskrivande text om tjänsten.
+Två knappar: "Skapa konto" (fylld guld) och "Logga in"
+(konturstil). Dekorativa hörn-brackets i guld i hörnen.
+
+[Sida 2 – Inloggning (login.php)]
+Delad skärm (split-screen). Vänster panel: varumärkes­
+panel med roterade ringar och SmartBudget-logotyp i guld.
+Höger panel: inloggningsformulär med animerad guldlinje
+som glider in under aktivt fält. Knapp med fill-animation
+vid hover.
+
+[Sida 3 – Registrering (register.php)]
+Identisk layout som inloggningssidan. Extra fält för
+visningsnamn läggs till ovanför formuläret.
+
+[Sida 4 – Dashboard (dashboard.php)]
+Fast sidebar till vänster med navigeringslänkar.
+Sammanfattningskort överst: "Kvar denna månad" i stort
+guldfärgat tal med inkomst, utgifter och spargrad nedan.
+Tre listsektioner: Inkomster / Fasta kostnader / Rörliga
+kostnader. Varje post har redigera- och ta bort-knappar.
+Borttagning animeras och sker utan sidomladdning.
+
+[Sida 5 – Statistik (statistics.php)]
+API-statuslist med gröna/röda indikatorpunkter.
+Fyra statistikkort i 2×2-grid plus ett fullbredskortet.
+Kortens innehåll: jämförelse med Sverige, inflation och
+styrränta, jämförelse med andra användare, budget­
+fördelning (cirkeldiagram), och personliga rekommendationer.
+
+[Sida 6 – Adminpanel (admin_dashboard.php)]
+Tre summerings-widgets (totalt/aktiva/suspenderade).
+Tabell med alla användare och metadata.
+Knappar för suspend/återställ/radera. Modal-dialog
+(popup) vid radering för att förhindra misstag.
+
+[Sida 7 – Lägg till / Redigera (add_item.php / edit_item.php)]
+Enkelt formulär med fält för namn och belopp.
+Spara-knapp med fill-sweep-animation vid hover.
+
+
+4.2  Flödesschema
+------------------
+Applikationens navigerings- och autentiseringsflöde:
+
+  [Ny besökare]
+       |
+       v
+  [index.php] ──> [register.php] ──> [login.php]
+                                           |
+                         ┌─────────────────┴──────────────────┐
+                  [roll: user]                          [roll: admin]
+                         |                                    |
+                         v                                    v
+                  [dashboard.php]                [admin_dashboard.php]
+                         |                                    |
+              ┌──────────┼──────────┐             [admin_action.php]
+              v          v          v               (AJAX-endpoint)
+       [add_item]  [edit_item] [statistics]
+              |
+       [delete_item] (AJAX)
+
+Autentiseringslogik (includes/auth.php):
+  Om $_SESSION['user_id'] inte är satt → redirect till login.php
+  Om $_SESSION['suspended'] är satt → blockeras vid login
+  Om roll = admin → omdirigeras till admin_dashboard.php
+
+
+4.3  Databasdesign
+-------------------
+Databasen "smartbudget" består av fyra tabeller.
+Alla tabeller använder InnoDB-lagringsmotorn för att stödja
+foreign key-relationer [6].
+
+TABELL: users
+  Kolumn       Typ            Beskrivning
+  id           INT PK AI      Primärnyckel, auto increment
+  username     VARCHAR(100)   Unik, används vid inloggning
+  name         VARCHAR(100)   Visningsnamn (display name)
+  email        VARCHAR(255)   E-postadress (valfritt)
+  password     VARCHAR(255)   Bcrypt-hashad med password_hash()
+  role         VARCHAR(20)    Värde: 'user' eller 'admin'
+  created_at   DATETIME       Tidpunkt för registrering
+  last_login   DATETIME       Tidpunkt för senaste inloggning
+  last_ip      VARCHAR(45)    IP-adress vid senaste inloggning
+  suspended    TINYINT(1)     0 = aktiv, 1 = suspenderad
+
+TABELL: incomes
+  Kolumn       Typ            Beskrivning
+  id           INT PK AI      Primärnyckel
+  user_id      INT FK         Foreign key → users.id
+  name         VARCHAR(255)   Beskrivning av inkomstkällan
+  amount       DECIMAL(10,2)  Belopp i kronor
+  created_at   DATETIME       Tidpunkt
+
+TABELL: fixed_expenses   (identisk struktur som incomes)
+TABELL: variable_expenses (identisk struktur som incomes)
+
+Relationer:
+  users (1) ──────< incomes (många)
+  users (1) ──────< fixed_expenses (många)
+  users (1) ──────< variable_expenses (många)
+
+Alla foreign keys definieras med ON DELETE CASCADE [6],
+vilket automatiskt raderar en användares data när
+användarkontot raderas.
+
+Figur 1: ER-diagram (beskrivet textuellt)
+  [users] 1──< [incomes]
+  [users] 1──< [fixed_expenses]
+  [users] 1──< [variable_expenses]
+
+
+4.4  Sidornas konstruktion
+---------------------------
+Alla skyddade sidor börjar med:
+  require 'includes/auth.php';
+  require 'config/db.php';
+
+auth.php startar sessionen och kontrollerar att
+$_SESSION['user_id'] är satt. Om inte sker omdirigering
+till login.php.
+
+config/db.php skapar en PDO-instans med en try-catch-
+konstruktion som hanterar anslutningsfel.
+
+HEADER OCH FOOTER:
+includes/header.php öppnar HTML-dokumentet, laddar
+Google Fonts och CSS, och renderar sidebaren. Sidebaren
+visar Admin-länken villkorligt:
+  <?php if($_SESSION["role"] === "admin"): ?>
+  <a href="admin_dashboard.php">Admin</a>
+  <?php endif; ?>
+
+includes/footer.php stänger HTML-taggar och laddar
+JavaScript-filen luxury.js.
+
+DASHBOARD:
+PHP hämtar data med tre separata prepared statements,
+en per tabell. Summorna beräknas i PHP:
+  $totalIncome = array_sum(array_column($incomes, "amount"));
+  $remaining   = $totalIncome - $totalExpenses;
+  $savingPct   = $totalIncome > 0
+                   ? round(($remaining / $totalIncome) * 100) : 0;
+
+PHP-variablerna bäddas in i ett JavaScript-block för
+live-uppdatering:
+  let totals = { income: <?= $totalIncome ?>,
+                 expenses: <?= $totalExpenses ?> };
+
+Varje budgetrad har data-attribut som JavaScript läser:
+  <div class="budget-row"
+       data-amount="<?= $item['amount'] ?>"
+       data-type="income">
+
+STATISTIK:
+PHP kör cURL mot Riksbankens API (se 4.7) och bygger
+PHP-arrayer ($cpifLabels, $cpifValues). Dessa skickas
+direkt till Chart.js via json_encode():
+  labels: <?= json_encode($cpifLabels) ?>
+
+World Bank API hämtas asynkront i JavaScript med fetch().
+
+
+4.5  Interaktion med JavaScript och AJAX
+-----------------------------------------
+JavaScript-filen luxury.js innehåller fem funktioner:
+
+initParticles(canvasId):
+  Skapar ett canvas-baserat partikelssystem med 90 guld­
+  färgade partiklar som rör sig slumpmässigt. Partiklar
+  kopplas med linjer om de är inom 130 pixlar från
+  varandra. Ytterligare linjer dras mot musens position.
+  requestAnimationFrame() används för effektiv animering [10].
+
+init3DTilt(selector, intensity):
+  Lyssnar på mousemove-händelser och beräknar elementets
+  lutning relativt musens position. CSS perspective och
+  rotateX/rotateY appliceras för ett 3D-korteffekt.
+
+animateCount(el):
+  Animerar tal från 0 till slutvärdet med ease-out cubic
+  easing över 1 400 millisekunder. PHP:s number_format()
+  returnerar "5 000,00" varför regex-replace krävs innan
+  parseFloat():
+    .replace(/,(?=\d{3})/g, '')
+
+initScrollReveal():
+  IntersectionObserver triggar fadeUp-CSS-animationen när
+  element scrollar in i vyn [10].
+
+initMagneticButtons():
+  Knappar förflyttas svagt mot muspositionen (25% av
+  avvikelsen från knappens center) för en magnetisk effekt.
+
+AJAX-borttagning i dashboard.php:
+  Vid klick på ta bort-knappen:
+  1. CSS-övergången startas (opacity 0, translateX, maxHeight)
+  2. fetch() skickas till delete_item.php med header
+     'X-Requested-With: XMLHttpRequest'
+  3. delete_item.php returnerar JSON: {"ok": true}
+  4. Live-summorna uppdateras i JavaScript
+  5. updateSummary() räknar om återstående belopp och spargrad
+  6. Raden tas bort från DOM efter 700ms fördröjning
+
+
+4.6  Design och CSS-animationer
+---------------------------------
+All CSS är samlad i assets/css/style.css. CSS-variabler
+i :root-selektorn används konsekvent för färger och
+typsnitt, vilket gör det enkelt att underhålla designen.
+
+Viktigaste CSS-variabler:
+  --bg:    #050505   (nästan svart bakgrund)
+  --gold:  #C9A84C   (primär accentfärg)
+  --white: #F5F3EE   (textfärg)
+  --muted: #666655   (dämpad text)
+  --red:   #A83232   (varningsfärg)
+  --serif: 'Cormorant Garamond'
+  --sans:  'Jost'
+
+Keyframes-animationer:
+  fadeUp   – Element glider uppåt 28px och tonas in
+  fadeIn   – Enkel infadning
+  spin     – Kontinuerlig rotation (360 grader)
+  scanline – Rörlig horisontell linje på startsidan
+  glow     – Pulserande gradient med animerad bakgrundsposition
+  shimmer  – Ljusreflex som rör sig över element
+
+3D-effekter åstadkoms med CSS perspective, rotateX, rotateY,
+scale3d och transform-style: preserve-3d [10].
+
+
+4.7  Externa API-integrationer
+--------------------------------
+WORLD BANK OPEN DATA API [11]:
+  Endpoint: api.worldbank.org/v2/country/SE/indicator/
+            NY.GNP.PCAP.PP.CD?format=json&per_page=5
+
+  Anrop sker med JavaScript fetch() direkt i webbläsaren.
+  API:et tillåter cross-origin-förfrågningar (CORS ok).
+  Responsen är en JSON-array där index 1 innehåller
+  datapunkterna. Koden filtrerar på value !== null och
+  tar det senaste årtalet:
+    const e = d[1]?.find(x => x.value !== null);
+    const monthly = Math.round(e.value / 12);
+
+  Resultatet jämförs med användarens registrerade inkomst
+  och presenteras i ett stapeldiagram med Chart.js.
+
+RIKSBANKENS OPEN API [12]:
+  Endpoint: api.riksbank.se/swea/v1/Observations/
+            {seriesId}/{from}/{to}
+
+  Dataserier:
+    SECPIFASTPCT12  CPIF-inflation, 12 månaders förändring
+    SETBREPOEFF     Effektiv styrränta
+
+  API:et blockerar webbläsaranrop med CORS-policy.
+  Lösningen är att anropa API:et server-side via PHP/cURL:
+
+    function riksbankGet(string $seriesId, ...): ?array {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 6,
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        ]);
+        $body = curl_exec($ch);
+        ...
+    }
+
+  Svaret parsas med json_decode() och filtreras för att
+  ta bort null-värden. Resultaten byggs till PHP-arrayer
+  som skickas till Chart.js via json_encode().
+
+  Baserat på aktuell inflation och styrränta genereras
+  ett kontextuellt råd: exempelvis "Inflationen är hög
+  (X%). Sparpengar tappar värdet — kolla högräntekonton."
+
+CHART.JS [13]:
+  JavaScript-bibliotek för att rendera interaktiva diagram.
+  Laddas via CDN (Content Delivery Network) från jsdelivr.net.
+  Tre diagramtyper används: bar (stapel), line (linje)
+  och doughnut (cirkel).
+
+
+4.8  Administratörspanel
+-------------------------
+Administratörspanelen är tillgänglig enbart för användare
+med rollen 'admin'. Behörighets­kontrollen sker i PHP:
+  if($_SESSION["role"] !== "admin") {
+      header("Location: dashboard.php");
+      exit;
+  }
+
+Panelen hämtar alla användare med en komplex SQL-query
+som inkluderar subqueries för att räkna antal poster:
+  SELECT u.*,
+    (SELECT COUNT(*) FROM incomes WHERE user_id=u.id) +
+    (SELECT COUNT(*) FROM fixed_expenses WHERE user_id=u.id) +
+    (SELECT COUNT(*) FROM variable_expenses WHERE user_id=u.id)
+    AS activity_count
+  FROM users u ORDER BY created_at DESC
+
+För varje användare visas: namn, användarnamn, roll,
+senaste IP-adress, antal poster, senaste inloggningstid
+och aktiv/suspenderad status.
+
+IP-adressen sparas vid varje lyckad inloggning i login.php:
+  $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+  UPDATE users SET last_login = NOW(), last_ip = ? WHERE id=?
+
+Alla adminåtgärder (suspend/unsuspend/delete) skickas som
+POST-förfrågningar till admin_action.php via fetch().
+Svaret är JSON och UI uppdateras utan sidomladdning.
+En modal-dialog (bekräftelsepopup) visas innan radering.
+Administratören kan inte agera på sitt eget konto —
+detta skyddas i admin_action.php:
+  if($id === intval($_SESSION['user_id'])) {
+      echo json_encode(['ok' => false]); exit;
+  }
+
+
+4.9  Utvecklingsmiljö och licenser
+------------------------------------
+Programvara           Version    Licens
+XAMPP                 8.2        GNU GPL / Apache License 2.0
+Apache HTTP Server    2.4        Apache License 2.0
+PHP                   8.2        PHP License 3.01
+MySQL/MariaDB         10.6       GNU GPL v2
+Visual Studio Code    1.87       MIT License
+phpMyAdmin            5.x        GNU GPL v2
+Google Chrome         120+       Proprietär (Google)
+Chart.js              4.x        MIT License
+Google Fonts          –          SIL Open Font License (OFL)
+World Bank API        –          Creative Commons CC BY 4.0
+Riksbankens API       –          Creative Commons CC BY 4.0
+
+
+
+
+================================================================
+5  RESULTAT OCH TESTNING
+================================================================
+
+5.1  Funktionella tester
+-------------------------
+Tabell 2: Resultat av funktionella tester
+
+Testfall                          Förväntat          Resultat
+-----------------------------------------------------------------
+Registrera med korrekt data       Konto skapas       Godkänt
+Registrera med befintligt namn    Felmeddelande      Godkänt
+Logga in med korrekt uppgifter    Session skapas     Godkänt
+Logga in med fel lösenord         Felmeddelande      Godkänt
+Logga in med suspenderat konto    Blockeras          Godkänt
+Lägga till inkomst 5000 kr        Raden visas        Godkänt
+Summorna uppdateras efter add     +5000 kr i total   Godkänt
+Ta bort en post (AJAX)            Animeras bort      Godkänt
+Summorna uppdateras efter delete  Utan sidomladdning Godkänt
+Redigera ett beloppsvärde         Nytt värde sparas  Godkänt
+Statistik World Bank laddas       Grön statusdot     Godkänt
+Riksbank-data visas               Inflation/styrränta Godkänt
+Chart.js-diagram renderas         3 diagramtyper     Godkänt
+Åtkomst admin som user            Redirect           Godkänt
+Suspendera användare              Blockeras vid login Godkänt
+Radera användare                  Data raderas       Godkänt
+Bekräftelsedialog vid radering    Modal visas        Godkänt
+
+Alla 17 testfall godkändes vid manuell testning.
+
+5.2  Säkerhetstester
+---------------------
+Tabell 3: Resultat av säkerhetstester
+
+Attack                Metod                   Resultat
+-----------------------------------------------------------------
+SQL-injektion         ' OR '1'='1 i login     Blockeras (PDO)
+SQL-injektion         " DROP TABLE users"     Blockeras (PDO)
+XSS                   <script>alert(1)</script Visas som text
+XSS                   <img onerror=alert(1)>  Visas som text
+Direktåtkomst         dashboard.php utan login Redirect
+Direktåtkomst         admin utan admin-roll   Redirect
+Admin agerar på sig   Suspendera eget konto   Blockeras
+
+Alla tester visade att säkerhets­åtgärderna fungerar korrekt.
+
+5.3  Kompatibilitetstester
+---------------------------
+Tabell 4: Webbläsarkompatibilitet
+
+Webbläsare           Version    Layout    AJAX    Animationer
+-----------------------------------------------------------------
+Google Chrome        120+       OK        OK      OK
+Mozilla Firefox      120+       OK        OK      OK
+Microsoft Edge       120+       OK        OK      OK
+Safari (macOS)       Ej testat  –         –       –
+Chrome (Android)     Grundtest  OK        OK      Delvis
+
+
+
+
+================================================================
+6  SLUTSATSER OCH DISKUSSION
+================================================================
+
+6.1  Analys av resultaten
+--------------------------
+Samtliga konkreta mål (M1–M5) som formulerades i avsnitt 1.4
+har uppnåtts:
+
+M1 – Autentisering: En komplett autentiseringsmodul
+implementerades med PHP-sessioner, bcrypt-hashning och
+behörighetskontroll. Suspenderings­funktionen lades till
+som utökning av grundkravet.
+
+M2 – AJAX utan sidomladdning: Borttagning av poster
+fungerar smidigt med animering och live-uppdatering
+av summor. Användar­upplevelsen förbättrades markant
+jämfört med traditionell form-submit med sidomladdning.
+
+M3 – API-visualisering: Båda API:erna integrerades och
+data visualiseras korrekt i Chart.js. World Bank-jämförelsen
+och Riksbanken­datan ger genuint värde för användaren.
+
+M4 – CORS-hantering: Riksbankens CORS-problem löstes
+elegant via PHP/cURL. Lösningen är robust och hanterar
+timeout och null-värden korrekt.
+
+M5 – Administratörspanel: En komplett panel med
+IP-spårning, suspend och radering implementerades
+med AJAX och bekräftelsedialog.
+
+6.2  Problem och lösningar
+----------------------------
+CORS-felet med Riksbankens API:
+  Det första försöket hämtade data direkt i JavaScript
+  med fetch(). Webbläsarens konsol visade:
+  "Access to fetch at 'api.riksbank.se' from origin
+  'localhost' has been blocked by CORS policy".
+
+  Analys: Riksbankens API skickar inte Access-Control-
+  Allow-Origin-headern i svaret, vilket krävs för att
+  webbläsaren ska tillåta anropet [9].
+
+  Lösning: Anropet flyttades till PHP-servern via cURL.
+  PHP-servern har inga CORS-begränsningar eftersom
+  restriktionen enbart gäller webbläsarbaserade anrop.
+  Detta är den korrekta och rekommenderade lösningen
+  för API:er som inte stödjer CORS [9].
+
+Talformattering i JavaScript:
+  PHP:s number_format() producerar "5 000,00" för
+  talet 5000. JavaScript:s parseFloat("5 000,00")
+  returnerade 5.0 eftersom parsern stannade vid mellanslaget.
+
+  Lösning: Mellanslag och tusentals­komman tas bort
+  med regex innan parseFloat() anropas:
+    .replace(/\s/g, '').replace(/,(?=\d{3})/g, '')
+
+CSS-webbläsarcache:
+  Uppdaterad CSS visades inte i webbläsaren.
+  Lösning: Cache-busting med query string på CSS-länken:
+  style.css?v=4 tvingar webbläsaren att ladda ny version.
+
+Klassnamnsfel i CSS:
+  CSS definierade .auth-ring-1 men HTML använde
+  .auth-brand-ring — en diskrepans som förhindrade
+  rotationsanimationen. Löstes genom att synkronisera
+  klassnamnen.
+
+6.3  Vad fungerar bra och dåligt
+----------------------------------
+Fungerar bra:
+  - AJAX-borttagning med smooth animation är smidig
+    och ger en professionell känsla.
+  - Partikelssystemet på startsidan presterar bra
+    tack vare requestAnimationFrame.
+  - 3D-kortlutningen fungerar utan externa bibliotek.
+  - API-integrationerna ger genuint aktuell data.
+  - Säkerhets­åtgärderna fungerar korrekt mot alla
+    testade angreppsvektorer.
+
+Fungerar mindre bra:
+  - Mobilanpassningen är grundläggande — sidebar döljs
+    men ingen hamburgermeny visas i mobilläge.
+  - Riksbankens API har 6 sekunders timeout vilket
+    kan göra statistiksidan långsam vid dålig anslutning.
+  - Ingen möjlighet att återställa glömt lösenord.
+
+6.4  Vidareutveckling
+-----------------------
+Med mer tid och resurser skulle följande kunna läggas till:
+
+Månadsvy: Filtrering av inkomster och kostnader per
+månad med historisk jämförelse.
+
+Budgetmål: Användaren sätter ett sparmål och får
+visuell progression mot målet.
+
+Mobilmeny: En hamburgermeny för navigering på mobil.
+
+Lösenordsåterställning: E-postbaserad återställning
+via PHPMailer eller liknande.
+
+Export: Budget­sammanställning som PDF eller CSV.
+
+Kategorier: Mer detaljerad kategorisering av utgifter
+(mat, transport, nöje) med egna diagram och
+månadsbudgetar per kategori.
+
+
+
+
+================================================================
+KÄLLFÖRTECKNING
+================================================================
+
+[1]  Kronofogden, "Skuldsättning bland unga vuxna",
+     https://www.kronofogden.se/statistik
+     Hämtad 2026-02-15.
+
+[2]  Finansinspektionen, "Den svenska hushållssektorn 2023",
+     https://www.fi.se/sv/publicerat/rapporter/
+     Publicerad 2023. Hämtad 2026-02-15.
+
+[3]  L. Welling & L. Thomson, PHP and MySQL Web Development,
+     5:e uppl. Addison-Wesley, 2017.
+
+[4]  PHP Documentation Group, "PHP Manual",
+     https://www.php.net/manual/
+     Hämtad 2026-01-20.
+
+[5]  Apache Friends, "XAMPP – Apache + MariaDB + PHP + Perl",
+     https://www.apachefriends.org/
+     Hämtad 2026-01-19.
+
+[6]  Oracle Corporation, "MySQL 8.0 Reference Manual",
+     https://dev.mysql.com/doc/refman/8.0/en/
+     Hämtad 2026-01-20.
+
+[7]  OWASP Foundation, "OWASP Top Ten",
+     https://owasp.org/www-project-top-ten/
+     Publicerad 2021. Hämtad 2026-01-25.
+
+[8]  R. Fielding, "Architectural Styles and the Design of
+     Network-based Software Architectures", doktorsavhandling,
+     University of California, Irvine, 2000.
+
+[9]  Mozilla Developer Network, "Cross-Origin Resource Sharing
+     (CORS)", https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+     Hämtad 2026-02-10.
+
+[10] Mozilla Developer Network, "Web APIs – MDN Web Docs",
+     https://developer.mozilla.org/en-US/docs/Web/API
+     Hämtad 2026-01-25.
+
+[11] World Bank Group, "World Bank Open Data API",
+     https://datahelpdesk.worldbank.org/
+     Hämtad 2026-02-01.
+
+[12] Sveriges Riksbank, "Riksbankens Open API – SWEA",
+     https://developer.api.riksbank.se/
+     Hämtad 2026-02-01.
+
+[13] Chart.js Contributors, "Chart.js Documentation",
+     https://www.chartjs.org/docs/
+     Hämtad 2026-02-05.
+
+
+
+
+================================================================
+BILAGA A: FILFÖRTECKNING OCH FILSTRUKTUR
+================================================================
+
+smartbudget/
+├── index.php               Startsida med partikelanimation
+├── login.php               Inloggningssida
+├── register.php            Registreringssida
+├── logout.php              Utloggning (förstör session)
+├── dashboard.php           Huvud-dashboard
+├── statistics.php          Statistik och diagram
+├── admin_dashboard.php     Administratörspanel
+├── admin_action.php        Admin AJAX-endpoint (POST)
+├── add_item.php            Lägg till inkomst/kostnad
+├── edit_item.php           Redigera inkomst/kostnad
+├── delete_item.php         Ta bort (stöd för AJAX)
+├── sqpl.txt                SQL-schema för databasen
+├── config/
+│   └── db.php              PDO-databasanslutning
+├── includes/
+│   ├── auth.php            Sessionsskydd (inkluderas på alla sidor)
+│   ├── header.php          HTML-huvud, Google Fonts, sidebar
+│   └── footer.php          HTML-sidfot, laddar luxury.js
+└── assets/
+    ├── css/
+    │   └── style.css       All CSS (~300 rader, inga ramverk)
+    └── js/
+        └── luxury.js       All JavaScript (~150 rader)
+
+
+INLOGGNINGSUPPGIFTER FÖR TESTNING:
+  Admin-konto:
+    Användarnamn: [admin-användarnamn]
+    Lösenord:     [lösenord]
+
+  Testanvändare:
+    Användarnamn: [testanvändare]
+    Lösenord:     [lösenord]
+
+================================================================
+  Mittuniversitetet | DT058G/DT100G Webbprogrammering | 2026
+================================================================

@@ -1,0 +1,26 @@
+PROJECT_NAME           = "SimTradeBot"
+PROJECT_BRIEF          = "C++ kursprojekt: simulerad trading-bot (offline) med strategi, risk, optimering och rapport"
+OUTPUT_DIRECTORY       = docs/out
+
+EXTRACT_ALL            = YES
+JAVADOC_AUTOBRIEF      = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+
+INPUT                  = include src docs/README.md
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.cpp *.md
+EXTENSION_MAPPING      = hpp=C++ cpp=C++
+USE_MDFILE_AS_MAINPAGE = docs/README.md
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = YES
+
+# Diagram (om Graphviz finns)
+HAVE_DOT               = NO
+UML_LOOK               = YES
+CLASS_DIAGRAMS         = YES

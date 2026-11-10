@@ -1,0 +1,21 @@
+# Build output
+build/
+*.o
+*.obj
+*.exe
+*.a
+*.lib
+*.bin
+
+# Generated docs and run output
+docs/out/
+out_chart.html
+out_*.csv
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+*.lnk
+.DS_Store
+Thumbs.db
